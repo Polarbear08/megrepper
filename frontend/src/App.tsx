@@ -133,6 +133,12 @@ export default function App() {
             </div>
 
             <div className="question-section">
+              <div className="question-section">
+                <h2 className="question-text">
+                  <span className="key-name">「{question.question_key}」</span>
+                  の値は？
+                </h2>
+              </div>
               <div className="options-grid">
                 {question.options.map((option, index) => (
                   <button
