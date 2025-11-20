@@ -12,6 +12,9 @@
     "cdk:deploy": "cdk deploy",
     "cdk:destroy": "cdk destroy"
   },
+  "dependencies": {
+    "dotenv": "^16.3.1"
+  },
   "devDependencies": {
     "@types/jest": "^29.5.0",
     "@types/node": "^20.0.0",

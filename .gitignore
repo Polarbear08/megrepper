@@ -44,6 +44,7 @@ yarn-error.log*
 .env
 .env.local
 .env.*.local
+.env.shared  # Local shared env (use .env.shared.example for template)
 
 # AWS
 *.pem

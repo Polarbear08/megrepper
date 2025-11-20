@@ -57,6 +57,59 @@ S3 (静的)    API Gateway
 ### インフラストラクチャ
 - **AWS CDK (TypeScript)**: Infrastructure as Code
 
+## 🔧 環境変数の設定
+
+### クイックスタート
+
+プロジェクト全体で共通の環境変数を管理します。
+
+```bash
+# プロジェクトルートで実行
+# 1. .env.shared.example から .env.shared を作成
+cp .env.shared.example .env.shared
+
+# 2. エディタで .env.shared を開いて実際の値を入力
+# - AWS_ACCOUNT_ID: あなたのAWSアカウントID
+# - AWS_ACCESS_KEY_ID: IAMユーザーのアクセスキー
+# - AWS_SECRET_ACCESS_KEY: IAMユーザーのシークレットキー
+# - その他の設定値
+
+# 3. セットアップスクリプトを実行して環境変数をロード
+source ./setup-env.sh
+```
+
+### ファイル構成
+
+| ファイル | 説明 |
+|---|---|
+| `.env.shared.example` | テンプレート（リポジトリに含める） |
+| `.env.shared` | ローカル設定（`.gitignore` で除外） |
+| `frontend/.env.example` | フロントエンド固有設定のテンプレート |
+| `backend/.env.example` | バックエンド固有設定のテンプレート |
+| `infrastructure/.env.example` | インフラ固有設定のテンプレート |
+
+### モジュール固有の環境変数（オプション）
+
+各モジュールで固有の環境変数が必要な場合、対応する `.env.local` ファイルを作成します：
+
+```bash
+# フロントエンド
+cp frontend/.env.example frontend/.env.local
+
+# バックエンド
+cp backend/.env.example backend/.env.local
+
+# インフラストラクチャ
+cp infrastructure/.env.example infrastructure/.env.local
+```
+
+### セキュリティのベストプラクティス
+
+- **決してコミットしない**: `.env.local`, `.env.shared` は絶対に Git にコミットしないこと（`.gitignore` で除外済み）
+- **機密情報の管理**: 本番環境では AWS Secrets Manager や AWS Systems Manager Parameter Store を使用
+- **IAM ロール**: EC2/Lambda では IAM ロールを使用してクレデンシャルを管理（環境変数不要）
+- **チーム内での共有**: Vault、1Password、Bitwarden など、専用のシークレット管理ツールを使用
+
 ## 🚀 デプロイ手順
 
 ### 前提条件
@@ -73,6 +126,15 @@ node --version  # v18以上推奨
 
 # Pythonのインストール（バックエンド用）
 python --version  # v3.9以上推奨
+```
+
+### 環境変数のセットアップ（最初）
+
+```bash
+# プロジェクトルートで実行
+cp .env.shared.example .env.shared
+# エディタで .env.shared を開いて値を入力
+source ./setup-env.sh
 ```
 
 ### 1️⃣ インフラストラクチャのセットアップ
@@ -216,9 +278,21 @@ npm run cdk:destroy
 
 ## 📝 開発環境での実行
 
+### 環境変数のセットアップ（初回のみ）
+
+```bash
+# プロジェクトルートで実行
+cp .env.shared.example .env.shared
+# エディタで .env.shared を開いて開発環境用の値を入力
+source ./setup-env.sh
+```
+
 ### ローカル開発（フロント + バック同時実行）
 
 ```bash
+# 環境変数をロード（まだの場合）
+source ./setup-env.sh
+
 # ターミナル 1: バックエンド
 cd backend
 pip install -r requirements.txt
@@ -247,25 +321,42 @@ npm test
 
 ## 📚 ファイル構成説明
 
+### Project Root
+
+| ファイル | 説明 |
+|---|---|
+| `.env.shared.example` | 全モジュール共通の環境変数テンプレート |
+| `.env.shared` | ローカル環境変数（`.gitignore` で除外） |
+| `setup-env.sh` | 環境変数をロードするスクリプト |
+
 ### frontend/
+
 | ファイル | 説明 |
 |---|---|
 | `src/main.tsx` | React アプリケーション エントリーポイント |
 | `src/App.tsx` | メインゲームコンポーネント |
 | `src/App.css` | ゲームUI スタイル |
+| `src/config.ts` | 環境変数設定（`import.meta.env` から読み込み） |
+| `.env.example` | フロントエンド固有の環境変数テンプレート |
 | `vite.config.ts` | Vite ビルド設定とAPI プロキシ設定 |
 
 ### backend/
+
 | ファイル | 説明 |
 |---|---|
 | `main.py` | FastAPI サーバーとゲームロジック |
+| `config.py` | 環境変数設定（Pydantic Settings） |
+| `.env.example` | バックエンド固有の環境変数テンプレート |
 | `requirements.txt` | Python 依存パッケージ |
 
 ### infrastructure/
+
 | ファイル | 説明 |
 |---|---|
 | `lib/index.ts` | CDK App エントリーポイント |
 | `lib/megrepper-stack.ts` | AWS リソース定義 |
+| `config.ts` | インフラ設定（環境変数から読み込み） |
+| `.env.example` | インフラ固有の環境変数テンプレート |
 | `cdk.json` | CDK 設定ファイル |
 
 ## 🔧 トラブルシューティング
