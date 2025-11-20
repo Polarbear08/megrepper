@@ -8,8 +8,6 @@
 #   または
 #   bash ./setup-env.sh
 
-set -e
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="$SCRIPT_DIR/.env.local"
 ENV_SHARED_FILE="$SCRIPT_DIR/.env.shared"
@@ -75,7 +73,74 @@ fi
 echo -e "${GREEN}セットアップ完了!${NC}"
 echo ""
 echo "次のステップ:"
-echo "  1. frontend:    cd frontend && npm install"
-echo "  2. backend:     cd backend && pip install -r requirements.txt"
-echo "  3. infrastructure: cd infrastructure && npm install"
+echo ""
+
+# Setup frontend (Node.js)
+echo -e "${YELLOW}1. Frontend セットアップ中...${NC}"
+cd "$SCRIPT_DIR/frontend"
+if [ ! -d "node_modules" ]; then
+  echo "   npm install を実行..."
+  npm install
+  if [ $? -eq 0 ]; then
+    echo -e "   ${GREEN}✓ Frontend セットアップ完了${NC}"
+  else
+    echo -e "   ${RED}✗ Frontend セットアップ失敗${NC}"
+    exit 1
+  fi
+else
+  echo "   ${GREEN}✓ node_modules が既に存在します${NC}"
+fi
+echo ""
+
+# Setup backend (Python)
+echo -e "${YELLOW}2. Backend セットアップ中...${NC}"
+cd "$SCRIPT_DIR/backend"
+if [ ! -d "venv" ]; then
+  echo "   Python 仮想環境を作成..."
+  python3 -m venv venv
+  if [ $? -ne 0 ]; then
+    echo -e "   ${RED}✗ 仮想環境作成失敗${NC}"
+    exit 1
+  fi
+fi
+
+# Activate venv and install dependencies
+source venv/bin/activate
+echo "   依存関係をインストール..."
+pip install -r requirements.txt
+if [ $? -eq 0 ]; then
+  echo -e "   ${GREEN}✓ Backend セットアップ完了${NC}"
+  echo -e "   ${YELLOW}   仮想環境を有効にするには: source backend/venv/bin/activate${NC}"
+else
+  echo -e "   ${RED}✗ Backend セットアップ失敗${NC}"
+  exit 1
+fi
+echo ""
+
+# Setup infrastructure (Node.js)
+echo -e "${YELLOW}3. Infrastructure セットアップ中...${NC}"
+cd "$SCRIPT_DIR/infrastructure"
+if [ ! -d "node_modules" ]; then
+  echo "   npm install を実行..."
+  npm install
+  if [ $? -eq 0 ]; then
+    echo -e "   ${GREEN}✓ Infrastructure セットアップ完了${NC}"
+  else
+    echo -e "   ${RED}✗ Infrastructure セットアップ失敗${NC}"
+    exit 1
+  fi
+else
+  echo "   ${GREEN}✓ node_modules が既に存在します${NC}"
+fi
+echo ""
+
+echo -e "${GREEN}═══════════════════════════════════════════${NC}"
+echo -e "${GREEN}  全てのセットアップが完了しました！${NC}"
+echo -e "${GREEN}═══════════════════════════════════════════${NC}"
+echo ""
+echo "利用方法:"
+echo "  • Backend で Python を使う場合:"
+echo "    source backend/venv/bin/activate"
+echo "  • Backend 環境から抜ける場合:"
+echo "    deactivate"
 echo ""
