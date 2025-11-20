@@ -48,17 +48,23 @@ class CheckAnswerResponse(BaseModel):
 def generate_random_key(prefix: str = "") -> str:
     """ランダムなキー名を生成"""
     key_names = [
-        "name", "age", "email", "city", "country", "product", "price", "user_id",
-        "status", "title", "description", "value", "type", "id", "data", "info",
-        "config", "settings", "metadata", "attributes", "properties", "result",
-        "message", "timestamp", "version", "category", "level", "score"
+        "name", "age", "email", "city", "country", "product", "price",
+        "user_id", "status", "title", "description", "value", "type",
+        "id", "data", "info", "config", "settings", "metadata",
+        "attributes", "properties", "result", "message", "timestamp",
+        "version", "category", "level", "score"
     ]
     return random.choice(key_names)
 
 
-def generate_random_data(max_depth: int = 3, current_depth: int = 0) -> Dict[str, Any]:
+def generate_random_data(
+    max_depth: int = 3, current_depth: int = 0
+) -> Dict[str, Any]:
     """3階層を限度とするランダムなJSON/YAMLデータを生成"""
-    logger.debug(f"Generating random data: max_depth={max_depth}, current_depth={current_depth}")
+    logger.debug(
+        f"Generating random data: max_depth={max_depth}, "
+        f"current_depth={current_depth}"
+    )
     data = {}
 
     # ランダムなキー数（1～5個）を生成
@@ -81,10 +87,18 @@ def generate_random_data(max_depth: int = 3, current_depth: int = 0) -> Dict[str
         if value_type == "string":
             # 文字列値を生成
             string_types = [
-                lambda: ''.join(random.choices(string.ascii_letters, k=random.randint(3, 10))),
+                lambda: ''.join(
+                    random.choices(
+                        string.ascii_letters, k=random.randint(3, 10)
+                    )
+                ),
                 lambda: f"user_{random.randint(1, 1000)}",
-                lambda: random.choice(["Tokyo", "New York", "London", "Paris", "Sydney"]),
-                lambda: random.choice(["active", "inactive", "pending", "completed"]),
+                lambda: random.choice(
+                    ["Tokyo", "New York", "London", "Paris", "Sydney"]
+                ),
+                lambda: random.choice(
+                    ["active", "inactive", "pending", "completed"]
+                ),
             ]
             data[key] = random.choice(string_types)()
 
@@ -130,11 +144,15 @@ def generate_question(data_format: str = "json") -> Question:
 
     # 正解を含む4つの選択肢を作成
     options_set = set()
-    options_set.add(json.dumps(correct_answer, sort_keys=True, default=str))
+    correct_answer_json = json.dumps(
+        correct_answer, sort_keys=True, default=str
+    )
+    options_set.add(correct_answer_json)
 
     # ランダムに他の値を選択
-    other_values = [v for v in unique_values
-                    if v != json.dumps(correct_answer, sort_keys=True, default=str)]
+    other_values = [
+        v for v in unique_values if v != correct_answer_json
+    ]
     random.shuffle(other_values)
 
     for v in other_values[:3]:
@@ -145,9 +163,13 @@ def generate_question(data_format: str = "json") -> Question:
     # 選択肢が4つ未満の場合は、ダミー値を追加
     while len(options_set) < 4:
         if isinstance(correct_answer, (int, float)):
-            options_set.add(json.dumps(random.randint(0, 100), default=str))
+            options_set.add(
+                json.dumps(random.randint(0, 100), default=str)
+            )
         elif isinstance(correct_answer, str):
-            options_set.add(json.dumps(f"dummy_{len(options_set)}", default=str))
+            options_set.add(
+                json.dumps(f"dummy_{len(options_set)}", default=str)
+            )
         else:
             options_set.add(json.dumps(None, default=str))
 
@@ -157,9 +179,13 @@ def generate_question(data_format: str = "json") -> Question:
 
     # データ形式に応じてデータを表示用に変換
     if data_format == "yaml":
-        data_display = yaml.dump(data, default_flow_style=False, allow_unicode=True)
+        data_display = yaml.dump(
+            data, default_flow_style=False, allow_unicode=True
+        )
     else:
-        data_display = json.dumps(data, indent=2, ensure_ascii=False)
+        data_display = json.dumps(
+            data, indent=2, ensure_ascii=False
+        )
 
     return Question(
         question_key=question_key,
@@ -178,7 +204,10 @@ async def create_question(request: QuestionRequest = None):
         # JSONとYAMLをランダムに選択
         data_format = random.choice(["json", "yaml"])
         question = generate_question(data_format)
-        logger.info(f"Question generated successfully: key={question.question_key}, format={data_format}")
+        logger.info(
+            f"Question generated successfully: "
+            f"key={question.question_key}, format={data_format}"
+        )
         return question
     except Exception as e:
         logger.error(f"Error generating question: {str(e)}", exc_info=True)
@@ -194,7 +223,11 @@ async def check_answer(request: CheckAnswerRequest):
         if is_correct:
             logger.info(f"Correct answer received: {request.user_answer}")
         else:
-            logger.warn(f"Incorrect answer received: user_answer={request.user_answer}, correct_answer={request.correct_answer}")
+            logger.warn(
+                f"Incorrect answer received: user_answer="
+                f"{request.user_answer}, correct_answer="
+                f"{request.correct_answer}"
+            )
         return CheckAnswerResponse(
             is_correct=is_correct,
             correct_answer=request.correct_answer
