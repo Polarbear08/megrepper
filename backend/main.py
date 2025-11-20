@@ -45,6 +45,40 @@ class CheckAnswerResponse(BaseModel):
     correct_answer: Any
 
 
+def extract_leaf_values(data: Any) -> List[Any]:
+    """データ構造からリーフノード（スカラー値）のみを抽出"""
+    leaf_values = []
+
+    if isinstance(data, dict):
+        for value in data.values():
+            leaf_values.extend(extract_leaf_values(value))
+    elif isinstance(data, list):
+        for item in data:
+            leaf_values.extend(extract_leaf_values(item))
+    else:
+        # スカラー値（int, float, str, bool, None）
+        leaf_values.append(data)
+
+    return leaf_values
+
+
+def extract_all_key_paths(data: Any, prefix: str = "") -> List[tuple[str, Any]]:
+    """
+    データ構造からすべてのキーパス（ドット記法）と値のペアを抽出
+    例: {"a": {"b": "c"}} -> [("a.b", "c"), ("a", {"b": "c"})]
+    """
+    paths = []
+
+    if isinstance(data, dict):
+        for key, value in data.items():
+            current_path = f"{prefix}.{key}" if prefix else key
+            paths.append((current_path, value))
+            # ネストされたデータを再帰的に処理
+            paths.extend(extract_all_key_paths(value, current_path))
+
+    return paths
+
+
 def generate_random_key(prefix: str = "") -> str:
     """ランダムなキー名を生成"""
     key_names = [
@@ -58,9 +92,9 @@ def generate_random_key(prefix: str = "") -> str:
 
 
 def generate_random_data(
-    max_depth: int = 3, current_depth: int = 0
+    max_depth: int = 4, current_depth: int = 0
 ) -> Dict[str, Any]:
-    """3階層を限度とするランダムなJSON/YAMLデータを生成"""
+    """3～4階層を限度とするランダムなJSON/YAMLデータを生成"""
     logger.debug(
         f"Generating random data: max_depth={max_depth}, "
         f"current_depth={current_depth}"
@@ -80,7 +114,7 @@ def generate_random_data(
         # 値の種類をランダムに決定
         value_type = random.choice(["string", "number", "boolean", "nested"])
 
-        # 3階層に達したか、ランダムに単純な値を選ぶ
+        # 4階層に達したか、ランダムに単純な値を選ぶ
         if current_depth >= max_depth - 1:
             value_type = random.choice(["string", "number", "boolean"])
 
@@ -122,24 +156,25 @@ def generate_random_data(
 
 
 def generate_question(data_format: str = "json") -> Question:
-    """ランダムなキーを選択して問題を生成"""
+    """ランダムなキーを選択して問題を生成（3～4階層に限定）"""
     logger.debug(f"Generating question with format: {data_format}")
-    # ランダムにデータを生成
-    data = generate_random_data()
+    # ランダムにデータを生成（max_depth=4で3～4階層に限定）
+    data = generate_random_data(max_depth=4)
 
-    # キーのリストを取得（第一階層のみ）
-    keys = list(data.keys())
-    if not keys:
+    # すべてのキーパス（ドット記法）を取得
+    all_key_paths = extract_all_key_paths(data)
+    if not all_key_paths:
         raise ValueError("Data must have at least one key")
 
-    question_key = random.choice(keys)
-    correct_answer = data[question_key]
+    question_key, correct_answer = random.choice(all_key_paths)
 
     # 4択の選択肢を生成
-    # 同じ値が複数あるかもしれないので、ユニークな値を取得
-    all_values = list(data.values())
+    # リーフノードのみを抽出し、ユニークな値を取得
+    all_leaf_values = extract_leaf_values(data)
     unique_values = list(set(
-        json.dumps(v, sort_keys=True, default=str) for v in all_values
+        json.dumps(
+            v, sort_keys=True, default=str
+        ) for v in all_leaf_values
     ))
 
     # 正解を含む4つの選択肢を作成
