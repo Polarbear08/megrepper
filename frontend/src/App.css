@@ -173,6 +173,7 @@ h1 {
   font-size: 1.3em;
   color: #333;
   text-align: center;
+  margin: 0;
 }
 
 .key-name {

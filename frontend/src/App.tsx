@@ -44,15 +44,16 @@ export default function App() {
     }
   };
 
-  const checkAnswer = async () => {
-    if (!question || selectedAnswer === null) return;
+  const checkAnswer = async (answer: unknown) => {
+    if (!question) return;
 
+    setSelectedAnswer(answer);
     setLoading(true);
-    logger.debug('Submitting answer to API', { selectedAnswer });
+    logger.debug('Submitting answer to API', { selectedAnswer: answer });
     try {
       const response = await axios.post(`${API_BASE_URL}/check-answer`, {
         correct_answer: question.correct_answer,
-        user_answer: selectedAnswer,
+        user_answer: answer,
       });
 
       const correct = response.data.is_correct;
@@ -60,11 +61,11 @@ export default function App() {
       setIsAnswered(true);
 
       if (correct) {
-        logger.info('Answer correct', { answer: selectedAnswer });
+        logger.info('Answer correct', { answer });
         setScore(score + 1);
       } else {
         logger.warn('Answer incorrect', {
-          userAnswer: selectedAnswer,
+          userAnswer: answer,
           correctAnswer: response.data.correct_answer
         });
       }
@@ -119,17 +120,19 @@ export default function App() {
           </div>
         ) : (
           <div className="game-section">
+            <div className="question-section">
+              <h2 className="question-text">
+                <span className="key-name">「{question.question_key}」</span>
+                の値は？
+              </h2>
+            </div>
+
             <div className="data-display">
               <div className="format-badge">{question.data_format.toUpperCase()}</div>
               <pre className="data-content">{question.data_display}</pre>
             </div>
 
             <div className="question-section">
-              <h2 className="question-text">
-                <span className="key-name">「{question.question_key}」</span>
-                の値は？
-              </h2>
-
               <div className="options-grid">
                 {question.options.map((option, index) => (
                   <button
@@ -143,8 +146,8 @@ export default function App() {
                         ? 'incorrect'
                         : ''
                     }`}
-                    onClick={() => !isAnswered && setSelectedAnswer(option)}
-                    disabled={isAnswered}
+                    onClick={() => !isAnswered && checkAnswer(option)}
+                    disabled={isAnswered || loading}
                   >
                     {typeof option === 'object'
                       ? JSON.stringify(option)
@@ -153,15 +156,7 @@ export default function App() {
                 ))}
               </div>
 
-              {!isAnswered ? (
-                <button
-                  className="btn btn-submit"
-                  onClick={checkAnswer}
-                  disabled={selectedAnswer === null || loading}
-                >
-                  {loading ? '確認中...' : '回答を送信'}
-                </button>
-              ) : (
+              {isAnswered && (
                 <div className="result-section">
                   {isCorrect ? (
                     <div className="result-correct">

@@ -104,9 +104,9 @@ def generate_random_key(prefix: str = "") -> str:
 
 
 def generate_random_data(
-    max_depth: int = 4, min_depth: int = 3, current_depth: int = 0
+    max_depth: int = 3, min_depth: int = 3, current_depth: int = 0
 ) -> Dict[str, Any]:
-    """3～4階層を限度とするランダムなJSON/YAMLデータを生成"""
+    """3階層を限度とするランダムなJSON/YAMLデータを生成"""
     logger.debug(
         f"Generating random data: max_depth={max_depth}, "
         f"min_depth={min_depth}, current_depth={current_depth}"
@@ -171,10 +171,10 @@ def generate_random_data(
 
 
 def generate_question(data_format: str = "json") -> Question:
-    """ランダムなキーを選択して問題を生成（3～4階層に限定）"""
+    """ランダムなキーを選択して問題を生成（3階層に限定）"""
     logger.debug(f"Generating question with format: {data_format}")
-    # ランダムにデータを生成（max_depth=4で3～4階層に限定）
-    data = generate_random_data(max_depth=4)
+    # ランダムにデータを生成（max_depth=3で3階層に限定）
+    data = generate_random_data(max_depth=3, min_depth=3)
 
     # すべてのキーパス（ドット記法）を取得
     all_key_paths = extract_all_key_paths(data)
