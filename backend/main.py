@@ -64,17 +64,29 @@ def extract_leaf_values(data: Any) -> List[Any]:
 
 def extract_all_key_paths(data: Any, prefix: str = "") -> List[tuple[str, Any]]:
     """
-    データ構造からすべてのキーパス（ドット記法）と値のペアを抽出
-    例: {"a": {"b": "c"}} -> [("a.b", "c"), ("a", {"b": "c"})]
+    データ構造からリーフノード（スカラー値）のキーパス（ドット記法）と値のペアを抽出
+    例: {"a": {"b": "c"}} -> [("a.b", "c")]
     """
     paths = []
 
     if isinstance(data, dict):
         for key, value in data.items():
             current_path = f"{prefix}.{key}" if prefix else key
-            paths.append((current_path, value))
-            # ネストされたデータを再帰的に処理
-            paths.extend(extract_all_key_paths(value, current_path))
+            # リーフノード（スカラー値）のみを追加
+            if not isinstance(value, (dict, list)):
+                paths.append((current_path, value))
+            else:
+                # ネストされたデータを再帰的に処理
+                paths.extend(extract_all_key_paths(value, current_path))
+    elif isinstance(data, list):
+        for idx, item in enumerate(data):
+            current_path = f"{prefix}[{idx}]" if prefix else f"[{idx}]"
+            # リーフノード（スカラー値）のみを追加
+            if not isinstance(item, (dict, list)):
+                paths.append((current_path, item))
+            else:
+                # ネストされたデータを再帰的に処理
+                paths.extend(extract_all_key_paths(item, current_path))
 
     return paths
 
@@ -92,12 +104,12 @@ def generate_random_key(prefix: str = "") -> str:
 
 
 def generate_random_data(
-    max_depth: int = 4, current_depth: int = 0
+    max_depth: int = 4, min_depth: int = 3, current_depth: int = 0
 ) -> Dict[str, Any]:
     """3～4階層を限度とするランダムなJSON/YAMLデータを生成"""
     logger.debug(
         f"Generating random data: max_depth={max_depth}, "
-        f"current_depth={current_depth}"
+        f"min_depth={min_depth}, current_depth={current_depth}"
     )
     data = {}
 
@@ -114,8 +126,11 @@ def generate_random_data(
         # 値の種類をランダムに決定
         value_type = random.choice(["string", "number", "boolean", "nested"])
 
-        # 4階層に達したか、ランダムに単純な値を選ぶ
-        if current_depth >= max_depth - 1:
+        # 最小階層に達していない場合は必ずネストする
+        if current_depth < min_depth - 1:
+            value_type = "nested"
+        # 最大階層に達したか、ランダムに単純な値を選ぶ
+        elif current_depth >= max_depth - 1:
             value_type = random.choice(["string", "number", "boolean"])
 
         if value_type == "string":
@@ -150,7 +165,7 @@ def generate_random_data(
 
         elif value_type == "nested":
             # ネストされたデータを再帰的に生成
-            data[key] = generate_random_data(max_depth, current_depth + 1)
+            data[key] = generate_random_data(max_depth, min_depth, current_depth + 1)
 
     return data
 
