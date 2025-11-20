@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import './App.css';
+import { logger } from './logger';
 
 interface Question {
   question_key: string;
@@ -21,18 +22,22 @@ export default function App() {
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [loading, setLoading] = useState(false);
 
+  logger.info('App component initialized');
+
   const fetchQuestion = async () => {
     setLoading(true);
     setSelectedAnswer(null);
     setIsAnswered(false);
     setIsCorrect(null);
 
+    logger.debug('Fetching question from API');
     try {
       const response = await axios.post<Question>(`${API_BASE_URL}/question`);
+      logger.info('Question fetched successfully', { key: response.data.question_key });
       setQuestion(response.data);
       setTotalQuestions(totalQuestions + 1);
     } catch (error) {
-      console.error('Failed to fetch question:', error);
+      logger.error('Failed to fetch question', error);
       alert('問題の取得に失敗しました');
     } finally {
       setLoading(false);
@@ -43,6 +48,7 @@ export default function App() {
     if (!question || selectedAnswer === null) return;
 
     setLoading(true);
+    logger.debug('Submitting answer to API', { selectedAnswer });
     try {
       const response = await axios.post(`${API_BASE_URL}/check-answer`, {
         correct_answer: question.correct_answer,
@@ -54,10 +60,16 @@ export default function App() {
       setIsAnswered(true);
 
       if (correct) {
+        logger.info('Answer correct', { answer: selectedAnswer });
         setScore(score + 1);
+      } else {
+        logger.warn('Answer incorrect', {
+          userAnswer: selectedAnswer,
+          correctAnswer: response.data.correct_answer
+        });
       }
     } catch (error) {
-      console.error('Failed to check answer:', error);
+      logger.error('Failed to check answer', error);
       alert('回答チェックに失敗しました');
     } finally {
       setLoading(false);

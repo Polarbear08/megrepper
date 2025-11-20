@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Any, Dict, List
+from logger import logger
 
 app = FastAPI(title="Megrepper API")
 
@@ -17,6 +18,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+logger.info("Megrepper API initialized")
 
 
 # リクエスト・レスポンスモデル
@@ -55,6 +58,7 @@ def generate_random_key(prefix: str = "") -> str:
 
 def generate_random_data(max_depth: int = 3, current_depth: int = 0) -> Dict[str, Any]:
     """3階層を限度とするランダムなJSON/YAMLデータを生成"""
+    logger.debug(f"Generating random data: max_depth={max_depth}, current_depth={current_depth}")
     data = {}
 
     # ランダムなキー数（1～5個）を生成
@@ -105,6 +109,7 @@ def generate_random_data(max_depth: int = 3, current_depth: int = 0) -> Dict[str
 
 def generate_question(data_format: str = "json") -> Question:
     """ランダムなキーを選択して問題を生成"""
+    logger.debug(f"Generating question with format: {data_format}")
     # ランダムにデータを生成
     data = generate_random_data()
 
@@ -168,22 +173,39 @@ def generate_question(data_format: str = "json") -> Question:
 @app.post("/api/question")
 async def create_question(request: QuestionRequest = None):
     """ランダムな問題を生成"""
-    # JSONとYAMLをランダムに選択
-    data_format = random.choice(["json", "yaml"])
-    return generate_question(data_format)
+    logger.info("Request received: /api/question")
+    try:
+        # JSONとYAMLをランダムに選択
+        data_format = random.choice(["json", "yaml"])
+        question = generate_question(data_format)
+        logger.info(f"Question generated successfully: key={question.question_key}, format={data_format}")
+        return question
+    except Exception as e:
+        logger.error(f"Error generating question: {str(e)}", exc_info=True)
+        raise
 
 
 @app.post("/api/check-answer")
 async def check_answer(request: CheckAnswerRequest):
     """回答をチェック"""
-    is_correct = request.correct_answer == request.user_answer
-    return CheckAnswerResponse(
-        is_correct=is_correct,
-        correct_answer=request.correct_answer
-    )
+    logger.info("Request received: /api/check-answer")
+    try:
+        is_correct = request.correct_answer == request.user_answer
+        if is_correct:
+            logger.info(f"Correct answer received: {request.user_answer}")
+        else:
+            logger.warn(f"Incorrect answer received: user_answer={request.user_answer}, correct_answer={request.correct_answer}")
+        return CheckAnswerResponse(
+            is_correct=is_correct,
+            correct_answer=request.correct_answer
+        )
+    except Exception as e:
+        logger.error(f"Error checking answer: {str(e)}", exc_info=True)
+        raise
 
 
 @app.get("/api/health")
 async def health_check():
     """ヘルスチェック"""
+    logger.debug("Health check requested")
     return {"status": "ok"}
