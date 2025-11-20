@@ -1,6 +1,7 @@
 import json
 import random
 import yaml
+import string
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -17,9 +18,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # リクエスト・レスポンスモデル
 class QuestionRequest(BaseModel):
     data: Dict[str, Any]
+
 
 class Question(BaseModel):
     question_key: str
@@ -28,17 +31,83 @@ class Question(BaseModel):
     data_format: str  # "json" or "yaml"
     data_display: str
 
+
 class CheckAnswerRequest(BaseModel):
     correct_answer: Any
     user_answer: Any
+
 
 class CheckAnswerResponse(BaseModel):
     is_correct: bool
     correct_answer: Any
 
-# ゲームデータを生成する関数
-def generate_question(data: Dict[str, Any], data_format: str = "json") -> Question:
+
+def generate_random_key(prefix: str = "") -> str:
+    """ランダムなキー名を生成"""
+    key_names = [
+        "name", "age", "email", "city", "country", "product", "price", "user_id",
+        "status", "title", "description", "value", "type", "id", "data", "info",
+        "config", "settings", "metadata", "attributes", "properties", "result",
+        "message", "timestamp", "version", "category", "level", "score"
+    ]
+    return random.choice(key_names)
+
+
+def generate_random_data(max_depth: int = 3, current_depth: int = 0) -> Dict[str, Any]:
+    """3階層を限度とするランダムなJSON/YAMLデータを生成"""
+    data = {}
+
+    # ランダムなキー数（1～5個）を生成
+    num_keys = random.randint(1, 5)
+
+    for _ in range(num_keys):
+        key = generate_random_key()
+
+        # キーが重複しないようにする
+        while key in data:
+            key = generate_random_key()
+
+        # 値の種類をランダムに決定
+        value_type = random.choice(["string", "number", "boolean", "nested"])
+
+        # 3階層に達したか、ランダムに単純な値を選ぶ
+        if current_depth >= max_depth - 1:
+            value_type = random.choice(["string", "number", "boolean"])
+
+        if value_type == "string":
+            # 文字列値を生成
+            string_types = [
+                lambda: ''.join(random.choices(string.ascii_letters, k=random.randint(3, 10))),
+                lambda: f"user_{random.randint(1, 1000)}",
+                lambda: random.choice(["Tokyo", "New York", "London", "Paris", "Sydney"]),
+                lambda: random.choice(["active", "inactive", "pending", "completed"]),
+            ]
+            data[key] = random.choice(string_types)()
+
+        elif value_type == "number":
+            # 数値を生成
+            number_type = random.choice(["int", "float"])
+            if number_type == "int":
+                data[key] = random.randint(0, 1000)
+            else:
+                data[key] = round(random.uniform(0, 100), 2)
+
+        elif value_type == "boolean":
+            # ブール値を生成
+            data[key] = random.choice([True, False])
+
+        elif value_type == "nested":
+            # ネストされたデータを再帰的に生成
+            data[key] = generate_random_data(max_depth, current_depth + 1)
+
+    return data
+
+
+def generate_question(data_format: str = "json") -> Question:
     """ランダムなキーを選択して問題を生成"""
+    # ランダムにデータを生成
+    data = generate_random_data()
+
     # キーのリストを取得（第一階層のみ）
     keys = list(data.keys())
     if not keys:
@@ -95,12 +164,14 @@ def generate_question(data: Dict[str, Any], data_format: str = "json") -> Questi
         data_display=data_display
     )
 
+
 @app.post("/api/question")
-async def create_question(request: QuestionRequest):
+async def create_question(request: QuestionRequest = None):
     """ランダムな問題を生成"""
     # JSONとYAMLをランダムに選択
     data_format = random.choice(["json", "yaml"])
-    return generate_question(request.data, data_format)
+    return generate_question(data_format)
+
 
 @app.post("/api/check-answer")
 async def check_answer(request: CheckAnswerRequest):
@@ -110,6 +181,7 @@ async def check_answer(request: CheckAnswerRequest):
         is_correct=is_correct,
         correct_answer=request.correct_answer
     )
+
 
 @app.get("/api/health")
 async def health_check():

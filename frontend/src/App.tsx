@@ -12,14 +12,6 @@ interface Question {
 
 const API_BASE_URL = '/api';
 
-const SAMPLE_DATA = {
-  name: 'Alice',
-  age: 30,
-  city: 'Tokyo',
-  country: 'Japan',
-  email: 'alice@example.com',
-};
-
 export default function App() {
   const [question, setQuestion] = useState<Question | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<unknown | null>(null);
@@ -36,9 +28,7 @@ export default function App() {
     setIsCorrect(null);
 
     try {
-      const response = await axios.post<Question>(`${API_BASE_URL}/question`, {
-        data: SAMPLE_DATA,
-      });
+      const response = await axios.post<Question>(`${API_BASE_URL}/question`);
       setQuestion(response.data);
       setTotalQuestions(totalQuestions + 1);
     } catch (error) {
